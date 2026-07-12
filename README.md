@@ -45,9 +45,7 @@ TransitOps is a full-stack logistics operations tool built for fleet managers, d
 
 ## 🖼️ Design & Workflow
 
-**High-level design**
 
-<img width="900" alt="High level design" src="https://github.com/user-attachments/assets/9d768981-8e98-43f4-bcf5-f54a802fb8f2" />
 
 **End-to-end transport operations workflow**
 
@@ -334,6 +332,7 @@ The seed also creates trips at **every stage of the lifecycle** (Draft, Dispatch
 
 ---
 
+
 ## 🗺️ Roadmap
 
 - [ ] Real-time trip tracking (WebSocket/live map)
@@ -342,5 +341,9 @@ The seed also creates trips at **every stage of the lifecycle** (Draft, Dispatch
 - [ ] Automated PDF/CSV scheduled reporting
 
 ---
+
+**High-level design**
+
+<img width="900" alt="High level design" src="https://github.com/user-attachments/assets/9d768981-8e98-43f4-bcf5-f54a802fb8f2" />
 
 <p align="center">Built with ❤️ for fleets that need to move fast — and stay accountable.</p>
