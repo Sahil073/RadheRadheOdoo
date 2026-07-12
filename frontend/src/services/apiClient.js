@@ -15,8 +15,11 @@ function authHeaders() {
   }
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://radheradheodoo.onrender.com/api";
+
 async function request(path, { method = "GET", body } = {}) {
-  const res = await fetch(`/api${path}`, {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const res = await fetch(`${API_BASE_URL}${normalizedPath}`, {
     method,
     headers: {
       "Content-Type": "application/json",
