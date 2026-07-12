@@ -1,28 +1,59 @@
-import * as storage from "./storage";
-import { seedFuelLogs, seedExpenses } from "@/data/seed";
+import { apiClient } from "./apiClient";
 
-const FUEL_COLLECTION = "fuelLogs";
-const EXPENSE_COLLECTION = "expenses";
+function fuelToFrontend(f) {
+  if (!f) return f;
+  return {
+    id: f.id,
+    vehicleId: f.vehicle_id,
+    date: f.date,
+    liters: f.liters,
+    cost: f.cost,
+    odometer: f.odometer,
+  };
+}
 
-storage.seedIfEmpty(FUEL_COLLECTION, seedFuelLogs);
-storage.seedIfEmpty(EXPENSE_COLLECTION, seedExpenses);
+function expenseToFrontend(e) {
+  if (!e) return e;
+  return {
+    id: e.id,
+    vehicleId: e.vehicle_id,
+    category: e.expense_type,
+    amount: e.amount,
+    date: e.date,
+    notes: e.description,
+  };
+}
 
 export async function listFuelLogs() {
-  return storage.getAll(FUEL_COLLECTION);
+  const logs = await apiClient.get("/fuel");
+  return logs.map(fuelToFrontend);
 }
 
 export async function addFuelLog(input) {
-  const record = { id: storage.makeId("fuel"), ...input };
-  return storage.insert(FUEL_COLLECTION, record);
+  const created = await apiClient.post("/fuel", {
+    vehicle_id: input.vehicleId,
+    date: input.date,
+    liters: input.liters,
+    cost: input.cost,
+    odometer: input.odometer,
+  });
+  return fuelToFrontend(created);
 }
 
 export async function listExpenses() {
-  return storage.getAll(EXPENSE_COLLECTION);
+  const logs = await apiClient.get("/expenses");
+  return logs.map(expenseToFrontend);
 }
 
 export async function addExpense(input) {
-  const record = { id: storage.makeId("exp"), ...input };
-  return storage.insert(EXPENSE_COLLECTION, record);
+  const created = await apiClient.post("/expenses", {
+    vehicle_id: input.vehicleId,
+    expense_type: input.category,
+    amount: input.amount,
+    date: input.date,
+    description: input.notes,
+  });
+  return expenseToFrontend(created);
 }
 
 // Total operational cost per vehicle = sum(fuel cost) + sum(maintenance cost) [+ other expenses]

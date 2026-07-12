@@ -1,5 +1,5 @@
 const { body, param } = require("express-validator");
-const { ROLES, VEHICLE_STATUS, DRIVER_STATUS } = require("../utils/constants");
+const { ROLES, VEHICLE_STATUS, DRIVER_STATUS, REGIONS } = require("../utils/constants");
 
 const isMongoId = (field) => param(field).isMongoId().withMessage(`${field} must be a valid id`);
 
@@ -24,6 +24,7 @@ const vehicle = {
     body("max_load_capacity").isFloat({ gt: 0 }).withMessage("max_load_capacity must be greater than 0"),
     body("odometer").optional().isFloat({ min: 0 }),
     body("acquisition_cost").optional().isFloat({ min: 0 }),
+    body("region").optional({ nullable: true }).isIn(REGIONS).withMessage(`region must be one of: ${REGIONS.join(", ")}`),
   ],
   update: [
     isMongoId("id"),
@@ -32,6 +33,7 @@ const vehicle = {
     body("odometer").optional().isFloat({ min: 0 }),
     body("acquisition_cost").optional().isFloat({ min: 0 }),
     body("status").optional().isIn(VEHICLE_STATUS).withMessage(`status must be one of: ${VEHICLE_STATUS.join(", ")}`),
+    body("region").optional({ nullable: true }).isIn(REGIONS).withMessage(`region must be one of: ${REGIONS.join(", ")}`),
   ],
   idParam: [isMongoId("id")],
 };
@@ -82,6 +84,7 @@ const fuel = {
     body("liters").isFloat({ gt: 0 }).withMessage("liters must be greater than 0"),
     body("cost").isFloat({ min: 0 }).withMessage("cost must be >= 0"),
     body("distance").optional().isFloat({ min: 0 }),
+    body("odometer").optional().isFloat({ min: 0 }),
     body("date").optional().isISO8601(),
   ],
 };

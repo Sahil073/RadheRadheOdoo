@@ -1,41 +1,28 @@
-import * as storage from "./storage";
-import { apiClient, API_BASE_URL } from "./apiClient";
-import { seedUsers } from "@/data/seed";
-
-const COLLECTION = "users";
-const SESSION_KEY = "transitops:session";
-
-storage.seedIfEmpty(COLLECTION, seedUsers);
+import { apiClient, SESSION_STORAGE_KEY } from "./apiClient";
 
 export async function login(email, password) {
-  // Once a real backend is configured, delegate to its auth endpoint instead
-  // of comparing passwords client-side against the mock user list.
-  if (API_BASE_URL) {
-    const session = await apiClient.post("/auth/login", { email, password });
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    return session;
-  }
-
-  const users = await storage.getAll(COLLECTION);
-  const match = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
-  if (!match) {
-    throw new Error("Invalid email or password.");
-  }
-  const session = { id: match.id, name: match.name, email: match.email, role: match.role };
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const { token, user } = await apiClient.post("/auth/login", { email, password });
+  const session = { token, id: user.id, name: user.name, email: user.email, role: user.role_name };
+  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
   return session;
 }
 
 export function logout() {
-  window.localStorage.removeItem(SESSION_KEY);
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
 export function getSession() {
-  const raw = window.localStorage.getItem(SESSION_KEY);
+  const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
   return raw ? JSON.parse(raw) : null;
 }
 
+// Static list for the "Quick Demo Accounts" helper on the login screen —
+// matches the users seeded by backend/seed/seed.js (password: password123).
 export async function demoAccounts() {
-  const users = await storage.getAll(COLLECTION);
-  return users.map((u) => ({ email: u.email, role: u.role }));
+  return [
+    { email: "manager@transitops.io", role: "Fleet Manager" },
+    { email: "driver@transitops.io", role: "Driver" },
+    { email: "safety@transitops.io", role: "Safety Officer" },
+    { email: "finance@transitops.io", role: "Financial Analyst" },
+  ];
 }

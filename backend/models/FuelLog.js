@@ -15,6 +15,8 @@ const fuelLogSchema = new mongoose.Schema(
     date: { type: Date, default: Date.now },
 
     distance: { type: Number, min: 0 },
+
+    odometer: { type: Number, min: 0 },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

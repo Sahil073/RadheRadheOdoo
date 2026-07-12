@@ -1,37 +1,44 @@
-import * as storage from "./storage";
-import { seedMaintenance } from "@/data/seed";
-import { MAINTENANCE_STATUS, VEHICLE_STATUS } from "@/utils/constants";
-import { setVehicleStatus } from "./vehicleService";
+import { apiClient } from "./apiClient";
+import { MAINTENANCE_STATUS } from "@/utils/constants";
 
-const COLLECTION = "maintenance";
+// Backend statuses are Active/Completed; the UI speaks Open/Closed.
+const STATUS_TO_FRONTEND = { Active: MAINTENANCE_STATUS.OPEN, Completed: MAINTENANCE_STATUS.CLOSED };
 
-storage.seedIfEmpty(COLLECTION, seedMaintenance);
+function toFrontend(m) {
+  if (!m) return m;
+  return {
+    id: m.id,
+    vehicleId: m.vehicle_id,
+    type: m.maintenance_type,
+    notes: m.description,
+    cost: m.cost,
+    openedAt: m.start_date,
+    closedAt: m.end_date,
+    status: STATUS_TO_FRONTEND[m.status] || m.status,
+  };
+}
 
 export async function listMaintenance() {
-  return storage.getAll(COLLECTION);
+  const logs = await apiClient.get("/maintenance");
+  return logs.map(toFrontend);
 }
 
-// Creating an active maintenance record automatically switches the vehicle to "In Shop".
+// Creating an active maintenance record automatically switches the vehicle
+// to "In Shop" (handled server-side, inside a transaction).
 export async function openMaintenance(input) {
-  const record = {
-    id: storage.makeId("mnt"),
-    status: MAINTENANCE_STATUS.OPEN,
-    openedAt: new Date().toISOString(),
-    closedAt: null,
-    ...input,
-  };
-  await setVehicleStatus(input.vehicleId, VEHICLE_STATUS.IN_SHOP);
-  return storage.insert(COLLECTION, record);
+  const created = await apiClient.post("/maintenance", {
+    vehicle_id: input.vehicleId,
+    maintenance_type: input.type,
+    description: input.notes,
+    cost: input.cost,
+    start_date: new Date().toISOString(),
+  });
+  return toFrontend(created);
 }
 
-// Closing maintenance restores the vehicle to Available (unless it was retired).
-export async function closeMaintenance(id, vehicle) {
-  const updated = await storage.update(COLLECTION, id, {
-    status: MAINTENANCE_STATUS.CLOSED,
-    closedAt: new Date().toISOString(),
-  });
-  if (vehicle && vehicle.status !== VEHICLE_STATUS.RETIRED) {
-    await setVehicleStatus(vehicle.id, VEHICLE_STATUS.AVAILABLE);
-  }
-  return updated;
+// Closing maintenance restores the vehicle to Available (unless it was
+// retired) — handled server-side, inside a transaction.
+export async function closeMaintenance(id) {
+  const { log } = await apiClient.patch(`/maintenance/${id}/close`);
+  return toFrontend(log);
 }

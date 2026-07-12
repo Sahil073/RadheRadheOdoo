@@ -1,35 +1,59 @@
-import * as storage from "./storage";
-import { seedDrivers } from "@/data/seed";
+import { apiClient } from "./apiClient";
 import { DRIVER_STATUS } from "@/utils/constants";
 
-const COLLECTION = "drivers";
-
-storage.seedIfEmpty(COLLECTION, seedDrivers);
+function toFrontend(d) {
+  if (!d) return d;
+  return {
+    id: d.id,
+    name: d.name,
+    licenseNumber: d.license_number,
+    licenseCategory: d.license_category,
+    licenseExpiry: d.license_expiry_date,
+    contact: d.contact_number,
+    safetyScore: d.safety_score,
+    status: d.status,
+  };
+}
 
 export async function listDrivers() {
-  return storage.getAll(COLLECTION);
+  const drivers = await apiClient.get("/drivers");
+  return drivers.map(toFrontend);
 }
 
 export async function createDriver(input) {
-  const record = {
-    id: storage.makeId("drv"),
-    status: DRIVER_STATUS.AVAILABLE,
-    safetyScore: 100,
-    ...input,
-  };
-  return storage.insert(COLLECTION, record);
+  const created = await apiClient.post("/drivers", {
+    name: input.name,
+    license_number: input.licenseNumber,
+    license_category: input.licenseCategory,
+    license_expiry_date: input.licenseExpiry,
+    contact_number: input.contact,
+    safety_score: input.safetyScore,
+  });
+  return toFrontend(created);
 }
 
 export async function updateDriver(id, patch) {
-  return storage.update(COLLECTION, id, patch);
+  const map = {
+    name: "name",
+    licenseCategory: "license_category",
+    contact: "contact_number",
+    status: "status",
+    safetyScore: "safety_score",
+  };
+  const body = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (map[key]) body[map[key]] = value;
+  }
+  const updated = await apiClient.put(`/drivers/${id}`, body);
+  return toFrontend(updated);
 }
 
 export async function setDriverStatus(id, status) {
-  return storage.update(COLLECTION, id, { status });
+  return updateDriver(id, { status });
 }
 
 export async function deleteDriver(id) {
-  return storage.remove(COLLECTION, id);
+  return apiClient.del(`/drivers/${id}`);
 }
 
 export function isLicenseExpired(driver) {

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { VEHICLE_STATUS } = require("../utils/constants");
+const { VEHICLE_STATUS, REGIONS } = require("../utils/constants");
 
 const vehicleSchema = new mongoose.Schema(
   {
@@ -30,6 +30,12 @@ const vehicleSchema = new mongoose.Schema(
       type: String,
       enum: VEHICLE_STATUS,
       default: "Available",
+    },
+
+    region: {
+      type: String,
+      enum: REGIONS,
+      default: null,
     },
   },
   {

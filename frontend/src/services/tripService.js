@@ -1,60 +1,63 @@
-import * as storage from "./storage";
-import { seedTrips } from "@/data/seed";
-import { TRIP_STATUS, VEHICLE_STATUS, DRIVER_STATUS } from "@/utils/constants";
-import { setVehicleStatus, isDispatchable } from "./vehicleService";
-import { setDriverStatus, isAssignable } from "./driverService";
+import { apiClient } from "./apiClient";
 
-const COLLECTION = "trips";
-
-storage.seedIfEmpty(COLLECTION, seedTrips);
+function toFrontend(t) {
+  if (!t) return t;
+  return {
+    id: t.id,
+    source: t.source,
+    destination: t.destination,
+    vehicleId: t.vehicle_id,
+    driverId: t.driver_id,
+    cargoKg: t.cargo_weight,
+    plannedKm: t.planned_distance,
+    status: t.status,
+    createdAt: t.created_at,
+    dispatchedAt: t.dispatched_at,
+    completedAt: t.completed_at,
+    cancelledAt: t.cancelled_at,
+    finalOdometer: t.final_odometer,
+    fuelConsumedL: t.fuel_consumed_liters,
+  };
+}
 
 export async function listTrips() {
-  return storage.getAll(COLLECTION);
+  const trips = await apiClient.get("/trips");
+  return trips.map(toFrontend);
 }
 
 export async function createTrip(input, { vehicle } = {}) {
   if (vehicle && Number(input.cargoKg) > Number(vehicle.maxLoadKg)) {
     throw new Error(`Cargo weight (${input.cargoKg}kg) exceeds vehicle capacity (${vehicle.maxLoadKg}kg).`);
   }
-  const record = {
-    id: storage.makeId("trp"),
-    status: TRIP_STATUS.DRAFT,
-    createdAt: new Date().toISOString(),
-    ...input,
-  };
-  return storage.insert(COLLECTION, record);
-}
-
-// Dispatching a trip moves both vehicle and driver to "On Trip".
-export async function dispatchTrip(trip, { vehicle, driver }) {
-  if (!isDispatchable(vehicle)) {
-    throw new Error("Vehicle is not available for dispatch.");
-  }
-  if (!isAssignable(driver)) {
-    throw new Error("Driver is not eligible for dispatch (suspended, expired license, or already on trip).");
-  }
-  await setVehicleStatus(vehicle.id, VEHICLE_STATUS.ON_TRIP);
-  await setDriverStatus(driver.id, DRIVER_STATUS.ON_TRIP);
-  return storage.update(COLLECTION, trip.id, { status: TRIP_STATUS.DISPATCHED, dispatchedAt: new Date().toISOString() });
-}
-
-// Completing a trip restores both vehicle and driver to Available.
-export async function completeTrip(trip, { vehicleId, driverId, finalOdometer, fuelConsumedL }) {
-  await setVehicleStatus(vehicleId, VEHICLE_STATUS.AVAILABLE);
-  await setDriverStatus(driverId, DRIVER_STATUS.AVAILABLE);
-  return storage.update(COLLECTION, trip.id, {
-    status: TRIP_STATUS.COMPLETED,
-    completedAt: new Date().toISOString(),
-    finalOdometer,
-    fuelConsumedL,
+  const created = await apiClient.post("/trips", {
+    source: input.source,
+    destination: input.destination,
+    vehicle_id: input.vehicleId,
+    driver_id: input.driverId,
+    cargo_weight: input.cargoKg,
+    planned_distance: input.plannedKm,
   });
+  return toFrontend(created);
 }
 
-// Cancelling a dispatched trip restores vehicle and driver to Available.
-export async function cancelTrip(trip, { vehicleId, driverId }) {
-  if (trip.status === TRIP_STATUS.DISPATCHED) {
-    await setVehicleStatus(vehicleId, VEHICLE_STATUS.AVAILABLE);
-    await setDriverStatus(driverId, DRIVER_STATUS.AVAILABLE);
-  }
-  return storage.update(COLLECTION, trip.id, { status: TRIP_STATUS.CANCELLED, cancelledAt: new Date().toISOString() });
+// Dispatching a trip moves both vehicle and driver to "On Trip" (handled
+// server-side, inside a transaction, together with the trip's own status).
+export async function dispatchTrip(trip) {
+  const { trip: updated } = await apiClient.patch(`/trips/${trip.id}/dispatch`);
+  return toFrontend(updated);
+}
+
+// Completing a trip restores both vehicle and driver to Available (server-side).
+export async function completeTrip(trip, { finalOdometer, fuelConsumedL } = {}) {
+  const { trip: updated } = await apiClient.patch(`/trips/${trip.id}/complete`, {
+    final_odometer: finalOdometer,
+    fuel_consumed_liters: fuelConsumedL,
+  });
+  return toFrontend(updated);
+}
+
+// Cancelling a dispatched trip restores vehicle and driver to Available (server-side).
+export async function cancelTrip(trip) {
+  const { trip: updated } = await apiClient.patch(`/trips/${trip.id}/cancel`);
+  return toFrontend(updated);
 }

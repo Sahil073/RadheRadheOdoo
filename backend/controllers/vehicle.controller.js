@@ -17,7 +17,7 @@ exports.getVehicleById = asyncHandler(async (req, res) => {
 });
 
 exports.createVehicle = asyncHandler(async (req, res) => {
-  const { registration_number, vehicle_name, vehicle_type, max_load_capacity, odometer, acquisition_cost } =
+  const { registration_number, vehicle_name, vehicle_type, max_load_capacity, odometer, acquisition_cost, region } =
     req.body;
 
   const vehicle = await Vehicle.create({
@@ -27,13 +27,14 @@ exports.createVehicle = asyncHandler(async (req, res) => {
     max_load_capacity,
     odometer,
     acquisition_cost,
+    region,
   });
 
   res.status(201).json(vehicle);
 });
 
 exports.updateVehicle = asyncHandler(async (req, res) => {
-  const allowedFields = ["vehicle_name", "vehicle_type", "odometer", "acquisition_cost", "status"];
+  const allowedFields = ["vehicle_name", "vehicle_type", "odometer", "acquisition_cost", "status", "region"];
   const updates = {};
   for (const field of allowedFields) {
     if (req.body[field] !== undefined) updates[field] = req.body[field];

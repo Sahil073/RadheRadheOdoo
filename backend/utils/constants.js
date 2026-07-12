@@ -10,10 +10,13 @@ const TRIP_STATUS = ["Draft", "Dispatched", "Completed", "Cancelled"];
 
 const MAINTENANCE_STATUS = ["Active", "Completed"];
 
+const REGIONS = ["North Hub", "South Hub", "East Hub", "West Hub"];
+
 module.exports = {
   ROLES,
   VEHICLE_STATUS,
   DRIVER_STATUS,
   TRIP_STATUS,
   MAINTENANCE_STATUS,
+  REGIONS,
 };

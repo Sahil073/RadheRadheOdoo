@@ -4,10 +4,12 @@ import * as driverService from "@/services/driverService";
 import * as tripService from "@/services/tripService";
 import * as maintenanceService from "@/services/maintenanceService";
 import * as fuelExpenseService from "@/services/fuelExpenseService";
+import { useAuth } from "@/context/AuthContext";
 
 const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
+  const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [trips, setTrips] = useState([]);
@@ -36,8 +38,20 @@ export function DataProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      // Logged out: clear any previous session's data instead of calling
+      // authenticated endpoints (avoids noisy 401s on the login screen).
+      setVehicles([]);
+      setDrivers([]);
+      setTrips([]);
+      setMaintenance([]);
+      setFuelLogs([]);
+      setExpenses([]);
+      setLoading(false);
+      return;
+    }
     refreshAll();
-  }, [refreshAll]);
+  }, [user, refreshAll]);
 
   const findVehicle = useCallback((id) => vehicles.find((v) => v.id === id), [vehicles]);
   const findDriver = useCallback((id) => drivers.find((d) => d.id === id), [drivers]);
@@ -72,19 +86,17 @@ export function DataProvider({ children }) {
   }, [findVehicle, refreshAll]);
 
   const dispatchTrip = useCallback(async (trip) => {
-    const vehicle = findVehicle(trip.vehicleId);
-    const driver = findDriver(trip.driverId);
-    await tripService.dispatchTrip(trip, { vehicle, driver });
+    await tripService.dispatchTrip(trip);
     await refreshAll();
-  }, [findVehicle, findDriver, refreshAll]);
+  }, [refreshAll]);
 
   const completeTrip = useCallback(async (trip, payload) => {
-    await tripService.completeTrip(trip, { vehicleId: trip.vehicleId, driverId: trip.driverId, ...payload });
+    await tripService.completeTrip(trip, payload);
     await refreshAll();
   }, [refreshAll]);
 
   const cancelTrip = useCallback(async (trip) => {
-    await tripService.cancelTrip(trip, { vehicleId: trip.vehicleId, driverId: trip.driverId });
+    await tripService.cancelTrip(trip);
     await refreshAll();
   }, [refreshAll]);
 
@@ -95,10 +107,9 @@ export function DataProvider({ children }) {
   }, [refreshAll]);
 
   const closeMaintenance = useCallback(async (record) => {
-    const vehicle = findVehicle(record.vehicleId);
-    await maintenanceService.closeMaintenance(record.id, vehicle);
+    await maintenanceService.closeMaintenance(record.id);
     await refreshAll();
-  }, [findVehicle, refreshAll]);
+  }, [refreshAll]);
 
   // --- Fuel & Expenses ---
   const addFuelLog = useCallback(async (input) => {
