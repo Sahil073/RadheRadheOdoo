@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+node_modules.zip
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+logs/
+
+# Misc
+.DS_Store
+*.tgz
+.idea/
+.vscode/
+*.swp
